@@ -61,12 +61,16 @@ async def help(ctx):
     embed.add_field(
         name="ping", value="Tells the user how long it took the bot to response to their command")
     embed.add_field(
-        name="champ", value="Input in a champion's name[required], what lane[optional], and true if you want" + 
+        name="champ", value="Input in a champion's name[required], what lane[optional], and true if you want" +
         " a screenshot[optional] to get the recommended runes for that champion scraped from OP.GG")
-    embed.add_field(name="ban", value="Ban a user from the server, optional to give a reason")
-    embed.add_field(name="kick", value="Kick a user from the server, optional to give a reason")
-    embed.add_field(name="unban", value="Unban a user from the server ban list")
-    embed.add_field(name="role", value="Returns a random role the user can play")
+    embed.add_field(
+        name="ban", value="Ban a user from the server, optional to give a reason")
+    embed.add_field(
+        name="kick", value="Kick a user from the server, optional to give a reason")
+    embed.add_field(
+        name="unban", value="Unban a user from the server ban list")
+    embed.add_field(
+        name="role", value="Returns a random role the user can play")
     await ctx.send(content=None, embed=embed)
 
 
