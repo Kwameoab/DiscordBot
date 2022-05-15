@@ -2,11 +2,13 @@ import discord
 from discord.ext import commands
 import random
 import asyncio
-from datetime import date
+import datetime
 from bs4 import BeautifulSoup as soup
 import requests
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 import os
+
 
 request = messages = 0
 
@@ -75,25 +77,24 @@ async def help(ctx):
 
 
 @client.command()
-async def champ(ctx, *, champion):
+async def op(ctx, *, input):
     global request
     request += 1
-    champion = champion.split()
-    name = champion[0]
+    input = input.split()
+    name = input[0]
+    if name.lower() == 'wukong':
+        name = 'monkeyking'     # Do know why but in op.gg wukong is moneky king
 
     role = ""
-    roleString = "For their most popular role"
-    if (len(champion) > 1):
-        role = champion[1]
-        roleString = f"For the {role} role"
+    if len(input) > 1:
+        role = input[1]
 
-    takeScreenshot = False
-    if (len(champion) > 2):
-        if(champion[2].lower() == "true"):
-            takeScreenshot = True
+    type = ""
+    if len(input) > 2:
+        type = input[2]
 
-    if os.path.exists(getImageLocation()):
-        os.remove(getImageLocation())
+    if os.path.exists(imageLoc := getImageLocation()):
+        os.remove(imageLoc)
 
     options = webdriver.ChromeOptions()
     options.add_argument('--ignore-certificate-errors')
@@ -101,44 +102,86 @@ async def champ(ctx, *, champion):
     options.add_argument('--start-maximized')
     options.add_argument('--start-fullscreen')
 
-    driver = webdriver.Chrome(getDriverLocation(), options=options)
-    driver.get(
-        f"https://na.op.gg/champion/{name.lower()}/statistics/{role.lower()}")
-
-    res = driver.execute_script("return document.documentElement.outerHTML")
-
-    pageSoup = soup(res, 'html.parser')
-
-    keystone = pageSoup.find("div", {
-                             "class": "perk-page__item perk-page__item--keystone perk-page__item--active"}).find("img").get('alt', '')
-    embed = discord.Embed(
-        title=f"This is the recommended runes for {name.lower().capitalize()}", description=roleString)
-
-    runeString = ""
-    runes = pageSoup.find_all(
-        "div", {"class": "perk-page__item perk-page__item--active"})
-    secondRuneString = ""
-    size = 0
-    for i in runes:
-        for j in i.find_all("img"):
-            if size >= 3:
-                secondRuneString += (j.get('alt', '')) + "\n"
-            else:
-                runeString += (j.get('alt', '')) + "\n"
-            size += 1
-
-        if size >= 5:
-            break
-
-    embed.add_field(name=keystone, value=runeString)
-    embed.add_field(name="Secondary", value=secondRuneString)
-    await ctx.send(content=None, embed=embed)
-
-    if (takeScreenshot):
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    link = ""
+    if role == "":
+        link = f"https://na.op.gg/champions/{name.lower()}/"
+        driver.get(link)
         driver.execute_script(
             "window.scrollTo(0, document.body.scrollHeight);")
-        driver.get_screenshot_as_file(getImageLocation())
-        await ctx.send(file=discord.File(getImageLocation()))
+    elif type == "":
+        link = f"https://na.op.gg/champions/{name.lower()}/{role.lower()}/"
+        driver.get(link)
+        driver.execute_script(
+            "window.scrollTo(0, document.body.scrollHeight);")
+    else:
+        link = f"https://na.op.gg/champions/{name.lower()}/{role.lower()}/{type.lower()}"
+        driver.get(link)
+        driver.execute_script(
+            "window.scrollTo(0, 740);")
+
+    driver.get_screenshot_as_file(imageLoc)
+    await ctx.send(file=discord.File(imageLoc))
+    await ctx.send(content=None, embed=discord.Embed(description=f"[link]({link})"))
+    driver.close()
+
+
+@client.command(aliases=["u"])
+async def ugg(ctx, *, input):
+    global request
+    request += 1
+    input = input.split()
+    name = input[0]
+
+    role = ""
+    if len(input) > 1:
+        role = input[1]
+        if role.lower() == 'mid':
+            role = 'middle'
+
+    type = ""
+    if len(input) > 2:
+        type = input[2]
+
+    rank = ""
+    if len(input) > 3:
+        rank = input[3]
+
+    if os.path.exists(imageLoc := getImageLocation()):
+        os.remove(imageLoc)
+
+    options = webdriver.ChromeOptions()
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--ignore-ssl-errors')
+    options.add_argument('--start-maximized')
+    options.add_argument('--start-fullscreen')
+
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    link = ""
+    if role == "":
+        link = f"https://u.gg/lol/champions/{name.lower()}/"
+        driver.get(link)
+        driver.execute_script(
+            "window.scrollTo(0, 300);")
+    elif type == "":
+        link = f"https://u.gg/lol/champions/{name.lower()}/build?role={role.lower()}"
+        driver.get(link)
+        driver.execute_script(
+            "window.scrollTo(0, 300);")
+    elif rank == "":
+        link = f"https://u.gg/lol/champions/{name.lower()}/{type.lower()}?role={role.lower()}"
+        driver.get(link)
+        driver.execute_script(
+            "window.scrollTo(0, 300);")
+    else:
+        link = f"https://u.gg/lol/champions/{name.lower()}/{type.lower()}?role={role.lower()}&rank={rank.lower()}"
+        driver.get(link)
+        driver.execute_script(
+            "window.scrollTo(0, 300);")
+
+    driver.get_screenshot_as_file(imageLoc)
+    await ctx.send(file=discord.File(imageLoc))
+    await ctx.send(content=None, embed=discord.Embed(description=f"[link]({link})"))
     driver.close()
 
 
@@ -186,8 +229,6 @@ async def role(ctx):
 async def on_message(message):
     global messages
     messages += 1
-    if 'ping' in message.content:
-        await message.channel.send('pong')
     await client.process_commands(message)
 
 
@@ -195,19 +236,19 @@ async def update_stats():
     await client.wait_until_ready()
     global request, messages
 
-    while (not client.is_closed()):
+    while not client.is_closed():
         try:
             with open("stats.txt", "a") as f:
                 f.write(
-                    f"Date: {date.today()}, Requests: {request}, Messages: {messages}\n")
+                    f"Date: {datetime.datetime.now()}, Requests: {request}, Messages: {messages}\n")
 
             request = messages = 0
 
-            await asyncio.sleep(60)
+            await asyncio.sleep(60 * 5)
 
         except Exception as e:
             print(f"Something went wrong. Error: {e}")
-            await asyncio.sleep(60)
+            await asyncio.sleep(60 * 5)
 
 client.loop.create_task(update_stats())
 
